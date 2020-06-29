@@ -27,27 +27,31 @@ module Controller(
     input MIO_ready, // 0 CPU suspends, 1 CPU running
 	 
     output [4:0] state_out, // for test
+	
+	output reg [3:0] ALU_operation, 
+	output reg [2:0] RAMCtrl,
 	 
-	 output reg PCWrite, // 1 write, 0 no write
+	output reg PCWrite, // 1 write, 0 no write
     output reg PCWriteCond, // 0 unconditional ins, 1 conditional ins
     output reg IorD, // 0 PC_out, 1 ALU_out
-	 output reg MemRead,
+	output reg MemRead,
     output reg MemWrite, 
     output reg IRWrite, // 1 write, 0 no write
     output reg [1:0] RegDst, // 00 rt(IR[21:16], 01 rd(IR[15:11]), 10/11 \
     output reg RegWrite, // 1 write, 0 no write
     output reg [1:0] MemtoReg, // 00 ALU_out(ALU ops), 01 MDR_out(lw), 10/11 \
     output reg ALUSrcA, // 0 reg A, 1 PC
-    output reg [1:0] ALUSrcB, // 00 reg B, 01 2(for PC + 2), 10 imm32, 11 imm32<<2
+    output reg [2:0] ALUSrcB, // 00 reg B, 01 2(for PC + 2), 10 imm32, 11 imm32<<2
     output reg [1:0] PCSource, // 00 alu_res, 01 ALU_out, 10 jump_addr, 11 \
-	 output reg Branch, // 0 for bne, 1 for beq
-	 output reg [3:0] ALU_operation, 
-	 output reg CPU_MIO
+	output reg Branch, // 0 for bne, 1 for beq
+	output reg CPU_MIO
     );
 
 `include "mips_parameters.vh"
 ////////////////////State Control////////////////////
-reg [3:0] state;
+reg [4:0] state;
+wire OPCode = Inst_in[31:26];
+wire ALU_Func = Inst_in[5:0];
 
 initial begin
 	state <= IF;
@@ -61,53 +65,85 @@ always@(posedge clk or posedge rst)begin
 		case(state)
 			IF: if(MIO_ready) state<=ID;
 					else state<=IF;
-			ID: case(Inst_in[31:26]) // change state due to op code
-					6'b000000: state<=R_Exe;
-					6'b000000: state<=I_Exe;
-					6'b000000: state<=R_Exe;
-					6'b000000: state<=R_Exe;
-					6'b000000: state<=R_Exe;
+			ID: case(OPCode) // change state due to op code
+					OP_R: state<=R_Exe;
+					OP_LUi: state<=I_Exe;
+					OP_LW, OP_LWx, OP_LH, OP_LHx, OP_LHu, OP_LHux, OP_SW, OP_SWx, OP_SH, OP_SHx : state<=Mem_Acc;
+					OP_ADDi, OP_SLTi, OP_SLTiu, OP_ANDi, OP_ORi, OP_XORi: state<=I_Exe;
+					OP_BEQ: state<=Beq_Exe;
+					OP_BNE: state<=Bne_Exe;
 				endcase
-			Mem_Ex: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Mem_RD: if(MIO_ready) state<=ID;
-					else state<=IF;
-			LW_WB: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Mem_W: if(MIO_ready) state<=ID;
-					else state<=IF;
+			Mem_Acc: 
+				case(OPCode)
+					OP_LW, OP_LWx, OP_LH, OP_LHx, OP_LHu, OP_LHux: state<=LD_RD;
+					OP_SW, OP_SWx, OP_SH, OP_SHx: state<=SV_WB;
+				endcase
+			LD_RD: 
+				case(OPCode)
+					OP_LW: RAMCtrl = Full;
+					OP_LWx: RAMCtrl = Fullx;
+					OP_LH: RAMCtrl = Half;
+					OP_LHx: RAMCtrl = Halfx;
+					OP_LHu: RAMCtrl = Halfu;
+					OP_LHux: RAMCtrl = Halfux;
+				endcase
+				state <= LD_WB;
+			LD_WB:
+				case(OPCode)
+					OP_LW: RAMCtrl = Full;
+					OP_LWx: RAMCtrl = Fullx;
+					OP_LH: RAMCtrl = Half;
+					OP_LHx: RAMCtrl = Halfx;
+					OP_LHu: RAMCtrl = Halfu;
+					OP_LHux: RAMCtrl = Halfux;
+				endcase
+				state <= IF;
+			SV_WB: 
+				case(OPCode)
+					OP_SW: RAMCtrl = Full;
+					OP_SWx: RAMCtrl = Fullx;
+					OP_SH: RAMCtrl = Half;
+					OP_SHx: RAMCtrl = Halfx;
 			R_Exe:
-				case(Inst_in[5:0])
-					6'b100000: ALU_operation = ADD;
-					6'b100010: ALU_operation = SUB;
-					6'b100100: ALU_operation = AND;
-					6'b100101: ALU_operation = OR;
-					6'b100111: ALU_operation = NOR;
-					6'b101010: ALU_operation = SLT;
-					6'b000010: ALU_operation = SRL;
-					6'b000000: ALU_operation = SLL;
-					6'b100110: ALU_operation = XOR;
+				case(ALU_Func)
+					ALU_ADD: ALU_operation = ADD;
+					ALU_SUB: ALU_operation = SUB;
+					ALU_AND: ALU_operation = AND;
+					ALU_OR: ALU_operation = OR;
+					ALU_NOR: ALU_operation = NOR;
+					ALU_SLT: ALU_operation = SLT;
+					ALU_SLTu: ALU_operation = SLTu;
+					ALU_SRLv: ALU_operation = SRL;
+					ALU_SLLv: ALU_operation = SLL;
+					ALU_SRAv: ALU_operation = SRA
+					ALU_XOR: ALU_operation = XOR;
 				endcase
-			R_WB: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Beq_Exe: if(MIO_ready) state<=ID;
-					else state<=IF;
-			J: if(MIO_ready) state<=ID;
-					else state<=IF;
-			I_Exe: if(MIO_ready) state<=ID;
-					else state<=IF;
-			I_WB: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Lui_WB: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Bne_Exe: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Jr: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Jal: if(MIO_ready) state<=ID;
-					else state<=IF;
-			Error: state<=Error;
-			default: state<=Error;
+				state<=R_WB;
+			R_SA:
+				case(ALU_Func)
+					ALU_SLL: ALU_operation = SLL;
+					ALU_SRL: ALU_operation = SRL;
+					ALU_SRA: ALU_operation = SRA;
+				endcase
+				state<=R_WB;
+			R_WB: state<=IF;
+			I_Exe:
+				case(OPCode)
+					OP_ADDi:
+					OP_SLTi:
+					OP_SLTiu:
+					OP_ANDi:
+					OP_ORi:
+					OP_XORi
+			I_WB: state<=IF;
+			Lui_WB: state<=IF;
+			Beq_Exe: state<=IF;
+			Bne_Exe: state<=IF;
+			J: state<=IF;
+			Jr: state<=IF;
+			JAL: state<=IF;
+			JALr: state<=IF;
+			default: state<=IF;
 		endcase
 end
 
@@ -119,21 +155,23 @@ always@*begin
 	case(state)
 		IF:		`Datapath_signals = value_IF;
 		ID:		`Datapath_signals = value_ID;
-		Mem_Ex:	`Datapath_signals = value_Mem_Ex;
-		Mem_RD:	`Datapath_signals = value_Mem_RD;
-		LW_WB:	`Datapath_signals = value_LW_WB;
-		Mem_W:	`Datapath_signals = value_Mem_WD;
+		Mem_Acc:`Datapath_signals = value_Mem_Acc;
+		LD_RD:	`Datapath_signals = value_LD_RD;
+		LD_WB:	`Datapath_signals = value_LD_WB;
+		SV_WB:	`Datapath_signals = value_SV_WB;
 		R_Exe:	`Datapath_signals = value_R_Exe;
-		R_WB:		`Datapath_signals = value_R_WB;
-		Beq_Exe:	`Datapath_signals = value_Beq_Exe;
-		J:			`Datapath_signals = value_J;
+		R_SA:	`Datapath_signals = value_R_SA;
+		R_WB:	`Datapath_signals = value_R_WB;
 		I_Exe:	`Datapath_signals = value_I_Exe;
-		I_WB:		`Datapath_signals = value_I_WB;
+		I_WB:	`Datapath_signals = value_I_WB;
 		Lui_WB:	`Datapath_signals = value_Lui_WB;
-		Bne_Exe:	`Datapath_signals = value_Bne_Exe;
+		Beq_Exe:`Datapath_signals = value_Beq_Exe;
+		Bne_Exe:`Datapath_signals = value_Bne_Exe;
+		J:		`Datapath_signals = value_J;
 		Jr:		`Datapath_signals = value_Jr;
-		Jal:		`Datapath_signals = value_Jal;
-		default:	`Datapath_signals = value_IF;
+		JAL:	`Datapath_signals = value_JAL;
+		JALr:	`Datapath_signals = value_JALr;
+		default:`Datapath_signals = value_IF;
 	endcase
 end
 

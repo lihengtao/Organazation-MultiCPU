@@ -27,13 +27,12 @@ module M_datapath(input clk,
 	    	      input RegWrite,
 	    	      input [1:0] MemtoReg,	//预留到2位
 	    	      input ALUSrcA,
-	    	      input [1:0] ALUSrcB,
+	    	      input [2:0] ALUSrcB,
 		          input [1:0] PCSource,	//4选1控制
 	    	      input PCWrite,
 		          input PCWriteCond,	
 		          input Branch,
 		          input [3:0]ALU_operation,
-                  input [2:0] RAMCtrl,
 		          input [31:0]data2CPU,
 					  
 		          output[31:0]PC_Current,
@@ -54,11 +53,12 @@ module M_datapath(input clk,
     wire [4:0] reg_Rs_addr_A = Inst[25:21];  //REG Source 1  rs
     wire [4:0] reg_Rt_addr_B = Inst[20:16];  //REG Source 2 or Destination rt
     wire [4:0] reg_Rd_addr   = Inst[15:11];  //REG Destination rd
+    wire [4:0] sa = Inst[10:6];              //shift amount
     wire [15:0] imm = Inst[15:0]; 	        //Immediate
     wire [25:0] direct_addr = Inst[25:0];    //Jump addre
     wire [4:0] reg_Wt_addr;
     
-    // reg write addr port 
+    // reg write addr port    RegDst
     MUX4T1_5 MUX0(.I0(reg_Rt_addr_B), 	//reg addr=IR[21:16]
                   .I1(reg_Rd_addr), 	//reg addr=IR[15:11], LW or lui
                   .I2(5'b11111),        //$ra for jal
@@ -66,7 +66,7 @@ module M_datapath(input clk,
                   .s(RegDst), 
                   .out(reg_Wt_addr)
                   );
-    // reg write data port 
+    // reg write data port    MemtoReg
     MUX4T1_32 MUX1(.I0(ALU_out), 		//ALU OP
                    .I1(MDR_out), 		//LW 
                    .I2(PC_Current),     //JAL
@@ -98,10 +98,14 @@ module M_datapath(input clk,
                    .out(alu_A)
                    );
     //ALU source B
-    MUX4T1_32 MUX3(.I0(rdata_B), 		//reg out B
+    MUX8T1_32 MUX3(.I0(rdata_B), 		//reg out B
                    .I1(32'h2), 		    //for PC+2
                    .I2(imm_32), 		//可扩展imm//Imm_32(31:0)
                    .I3({imm_32[29:0], 2'b00}),		//可扩展offset//Imm_32(29:0),N0,N0
+                   .I4({27'h0, sa[4:0]}),   //shift
+                   .I5(32'h00000000),   //not use
+                   .I6(32'h00000000),   //not use
+                   .I7(32'h00000000),   //not use
                    .s(ALUSrcB), 
                    .out(alu_B)
                    );	

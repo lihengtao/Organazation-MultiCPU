@@ -63,9 +63,12 @@ always@(posedge clk or posedge rst)begin
 	if(rst == 1)state<=IF;
 	else
 		case(state)
-			IF: if(MIO_ready) state<=ID;
+			IF: 
+				ALU_operation = ADD;
+				if(MIO_ready) state<=ID;
 					else state<=IF;
-			ID: case(OPCode) // change state due to op code
+			ID:
+				case(OPCode) // change state due to op code
 					OP_R: state<=R_Exe;
 					OP_LUi: state<=I_Exe;
 					OP_LW, OP_LWx, OP_LH, OP_LHx, OP_LHu, OP_LHux, OP_SW, OP_SWx, OP_SH, OP_SHx : state<=Mem_Acc;
@@ -130,15 +133,33 @@ always@(posedge clk or posedge rst)begin
 			I_Exe:
 				case(OPCode)
 					OP_ADDi:
+						ALU_operation = ADD;
+						state <= I_WB;
 					OP_SLTi:
+						ALU_operation = SLT;
+						state <= I_WB;
 					OP_SLTiu:
+						ALU_operation = SLTu;
+						state <= I_WB;
 					OP_ANDi:
+						ALU_operation = AND;
+						state <= I_WB;
 					OP_ORi:
-					OP_XORi
+						ALU_operation = OR;
+						state <= I_WB;
+					OP_XORi:
+						ALU_operation = XOR;
+						state <= I_WB;
+					LUi: state <= Lui_WB
+				endcase
 			I_WB: state<=IF;
 			Lui_WB: state<=IF;
-			Beq_Exe: state<=IF;
-			Bne_Exe: state<=IF;
+			Beq_Exe: 
+				ALU_operation = SUB;
+				state<=IF;
+			Bne_Exe:
+				ALU_operation = ADD;
+				state<=IF;
 			J: state<=IF;
 			Jr: state<=IF;
 			JAL: state<=IF;

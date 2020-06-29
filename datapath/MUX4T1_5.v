@@ -33,6 +33,6 @@ module MUX4T1_5(
     wire EN3 = ( s[1]) & ( s[0]);
     
     
-    assign out = ({32{EN0}} & I0) | ({32{EN1}} & I1) | ({32{EN2}} & I2) | ({32{EN3}} & I3);
+    assign out = ({5{EN0}} & I0) | ({5{EN1}} & I1) | ({5{EN2}} & I2) | ({5{EN3}} & I3);
 
 endmodule

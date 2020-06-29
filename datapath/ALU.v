@@ -43,7 +43,7 @@ module ALU(
     assign res_sltu = (A < B) ? 32'h00000001 : 32'h00000000;
     assign res_sra = $signed(A) >>> B;
     
-    assign zero = (res == 0) ? 1 : 0;
+    assign zero = (|res[31:0]) ? 1'b0 : 1'b1;
     
     ADD32b ADD(.A(A),
                .B(Bin),

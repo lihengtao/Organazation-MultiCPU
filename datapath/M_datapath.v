@@ -70,7 +70,7 @@ module M_datapath(input clk,
     MUX4T1_32 MUX1(.I0(ALU_out), 		//ALU OP
                    .I1(MDR_out), 		//LW 
                    .I2(PC_Current),     //JAL
-                   .I3(32'h00000000),	// not use 	
+                   .I3({imm[15:0], 16'h0000}),	// lui
                    .s(MemtoReg), 		
                    .out(reg_Wt_data)
                    );

@@ -16,7 +16,8 @@ parameter IF 		= 5'b00000, // Instruction Fetch
 			J 		= 5'b01001, // jump
 			Jr 		= 5'b01110, // jump register
 			JAL 	= 5'b01111, // 
-			JALr	= 5'b11111;
+			JALr	= 5'b11111,
+            BGEZAL_Exe  = 5'b10001;
 			
 // define datapath signal output for states
 //`define Datapath_signals {PCWrite,PCWriteCond,IorD,MemRead,MemWrite,IRWrite,MemtoReg,PCSource,ALUSrcB,ALUSrcA,RegWrite,RegDst,Branch,CPU_MIO}
@@ -35,12 +36,13 @@ parameter value_IF			= 19'b1000010000001000001,
 			value_I_Exe		= 19'b0000000000010100000,
 			value_I_WB		= 19'b0000000000010110000,
 			value_Lui_WB	= 19'b0000001100011010000,
-			value_Beq_Exe	= 19'b0100000001000010010,
-			value_Bne_Exe	= 19'b0100000001000010000,
+			value_Beq_Exe	= 19'b0100000001000100010,
+			value_Bne_Exe	= 19'b0100000001000100010,
 			value_J			= 19'b1000000010011000000,
 			value_Jr		= 19'b1000000000000100000,
 			value_JAL		= 19'b1000001010011011000,
-			value_JALr		= 19'b1000001000000111000;
+			value_JALr		= 19'b1000001000000111000,
+           value_BGEZAL_Exe = 19'b0100001001101111010;
             
 // define OPCodes
 parameter OP_R 		= 6'b000000,
@@ -64,7 +66,8 @@ parameter OP_R 		= 6'b000000,
 			OP_BEQ	= 6'b000100,
 			OP_BNE	= 6'b000101,
             OP_J    = 6'b000010,
-            OP_JAL  = 6'b000011;
+            OP_JAL  = 6'b000011,
+            OP_BGEZAL = 6'b000001;
 
 
 // define ALU Func Codes
@@ -81,7 +84,7 @@ parameter ALU_ADD	 = 6'b100000,
 			ALU_SRL	 = 6'b000010,
 			ALU_SRLv = 6'b000110,
 			ALU_SRA	 = 6'b000011,
-			ALU_SRAv = 6'b000111，
+			ALU_SRAv = 6'b000111,
 			ALU_Jr	 = 6'b001000,
 			ALU_JALr = 6'b001001;
 
@@ -96,7 +99,8 @@ parameter AND	= 4'b0000,
 			XOR	= 4'b1000,
 			SLL	= 4'b0011, // A as data, B as payload
 			SRA = 4'b1010,
-			SRL	= 4'b0101;
+			SRL	= 4'b0101,
+            EQUAL = 4'b1011;
 
 // define RAM Control
 parameter Full = 000,

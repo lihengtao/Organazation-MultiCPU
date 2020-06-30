@@ -80,6 +80,7 @@ always@(posedge clk or posedge rst)begin
 					OP_BNE: state<=Bne_Exe;
                     OP_J: state<=J;
                     OP_JAL: state<=JAL;
+                    OP_BGEZAL: state<=BGEZAL_Exe;
 				endcase
 			Mem_Acc: 
 				case(OPCode)
@@ -110,6 +111,7 @@ always@(posedge clk or posedge rst)begin
 			Jr: state<=IF;
 			JAL: state<=IF;
 			JALr: state<=IF;
+            BGEZAL_Exe:state<=IF;
 			default: state<=IF;
 		endcase
 end
@@ -203,12 +205,16 @@ always@(*)begin
         end
 		Bne_Exe:begin
             `Datapath_signals <= value_Bne_Exe;
-            ALU_operation <= ADD;
+            ALU_operation <= EQUAL;
         end
 		J:		`Datapath_signals <= value_J;
 		Jr:		`Datapath_signals <= value_Jr;
 		JAL:	`Datapath_signals <= value_JAL;
 		JALr:	`Datapath_signals <= value_JALr;
+        BGEZAL_Exe:begin
+            `Datapath_signals <= value_BGEZAL_Exe;
+            ALU_operation <= SLT;
+        end
 		default:`Datapath_signals <= value_IF;
 	endcase
 end

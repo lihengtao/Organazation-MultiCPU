@@ -28,7 +28,7 @@ module ALU(
     );
     
     parameter INVALID = 32'hx;
-    wire [31:0] res_and,res_or,res_nor,res_slt, res_alu, res_sll, res_srl, res_xor, res_sltu, res_sra, Bin;
+    wire [31:0] res_and,res_or,res_nor,res_slt, res_alu, res_sll, res_srl, res_xor, res_sltu, res_sra, res_equal, Bin;
     
     assign Bin = (ALU_operation == 3'b110) ? ~B[31:0] : B[31:0];
     wire   sub = (ALU_operation == 3'b110) ? 1 : 0;
@@ -42,8 +42,9 @@ module ALU(
     assign res_xor = A ^ B;
     assign res_sltu = (A < B) ? 32'h00000001 : 32'h00000000;
     assign res_sra = $signed(A) >>> B;
+    assign res_equal  = (A == B) ? 32'h00000001 : 32'h00000000;
     
-    assign zero = (|res[31:0]) ? 1'b0 : 1'b1;
+    assign zero = (|res[31:0]) ? 32'h0 : 32'h1;
     
     ADD32b ADD(.A(A),
                .B(Bin),
@@ -64,7 +65,7 @@ module ALU(
                    .I8(res_xor),
                    .I9(res_sltu),
                    .I10(res_sra),
-                   .I11(INVALID),
+                   .I11(res_equal),
                    .I12(INVALID),
                    .I13(INVALID),
                    .I14(INVALID),

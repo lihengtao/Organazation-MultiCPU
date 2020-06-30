@@ -81,9 +81,7 @@ parameter ALU_ADD	 = 6'b100000,
 			ALU_SRL	 = 6'b000010,
 			ALU_SRLv = 6'b000110,
 			ALU_SRA	 = 6'b000011,
-			ALU_SRAv = 6'b000111，
-			ALU_Jr	 = 6'b001000,
-			ALU_JALr = 6'b001001;
+			ALU_SRAv = 6'b000111;
 
 // define ALU opcode
 parameter AND	= 4'b0000,

@@ -66,13 +66,7 @@ always@(posedge clk or posedge rst)begin
             end
 			ID:
 				case(OPCode) // change state due to op code
-					OP_R: begin 
-						case(ALU_Func)
-							ALU_Jr: state<=Jr;
-							ALU_JALr: state<=JALr;
-							default: state<=R_Exe;
-						endcase
-					end
+					OP_R: state<=R_Exe;
 					OP_LUi: state<=I_Exe;
 					OP_LW, OP_LWx, OP_LH, OP_LHx, OP_LHu, OP_LHux, OP_SW, OP_SWx, OP_SH, OP_SHx : state<=Mem_Acc;
 					OP_ADDi, OP_SLTi, OP_SLTiu, OP_ANDi, OP_ORi, OP_XORi: state<=I_Exe;

@@ -1,1 +1,1 @@
-# top-level files for simulation, not for phisical verification
+# top-level files for simulation, not for physical verification
